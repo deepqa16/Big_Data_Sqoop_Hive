@@ -1,0 +1,106 @@
+1-Sqoop import cmd from RDMS to HDFS 
+
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products -m 1 --target-dir /user/cloudera/sqoop_job
+
+	2- Sqoop import through validation
+ sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products -m 1 --target-dir /user/cloudera/sqoop_job2 --validate
+
+	3- Sqoop import through --direct not using jdbc
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products -m 2 --target-dir /user/cloudera/sqoop_job2 --direct
+
+	4- Sqoop import without mention no. of mappers
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products  --target-dir /user/cloudera/sqoop_job3 
+
+	5- Sqoop import a table without Primary_key using --split-by <cloumn _name>
+ sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products_noPrimary --split-by product_id --target-dir /user/cloudera/sqoop_job_noPrimary
+
+ 6-Soop import with filter row and specific column 
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products --columns "product_id,product_name,price" --where "price >='100'" --target-dir /user/cloudera/sqoopFilterCloumns \--m 1
+
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products_noPrimary --columns "product_id,product_name,price" --where "price >='500'" --split-by product_id --target-dir /user/cloudera/sqoopFilterCloumns_splitby
+
+7- Sqoop eval 
+sqoop eval --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --query "select * from products;"
+sqoop eval --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --query "select product_id,product_name,price from products where price >700;"
+
+	8- How to make sqoop job faster --direct
+Sqoop import connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products -m 1 --target-dir /user/cloudera/sqoop_job_direct --direct
+
+9-sqoop --incremental append --check-cloumn <column_name> --last-value 0 (for Static data)
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table cust -m 1  --target-dir /user/cloudera/sqoop_append --incremental append --check-column id --last-value 0
+
+It will in hdfs a directory with one part file  part-m-00000
+
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table cust -m 1  --target-dir /user/cloudera/sqoop_append --incremental append --check-column id --last-value 12
+Now this will also create another part file part-m-00001
+
+Note -this id shoud be int datatype in mysql db bcs when I use table products table here products_id datatype is varchar so it is giving error when I am using --check-column 
+
+19-Create Sqoop Job
+
+sqoop job --create Sqljob1 -- import  --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table cust -m 1 --target-dir /user/cloudera/sqoop_append_auto --incremental append --check-column id --last-value 0
+
+Check sqoop job created or no
+Sqoop job --list
+
+Exceute this sqoop job with this cmd 
+ sqoop job --exec Sqljob1 
+Then enter password cloudera
+Check target directory
+Why we need sqoop job --remenber last value is not that much easy so we use sqoop job 
+Where it is store --metastore.db.script file  under the hidden directory .sqoop
+How to check this file 
+ls -lart >>this will show hidden directory 
+cd .sqoop
+Ls -lrt
+cat metastore.db.script >>here store last value 
+NOTE- in this sqoop job give password every time this not much easy 
+ 
+20-Password serialization Or Password encript for sqoop job
+-cerate a file 
+echo -n "cloudera" > Sqoop_pass.password
+ ls -lrt >>check file 
+-Move file in to HDFS
+hdfs dfs -put Sqoop_pass.password /user/cloudera
+hdfs dfs -ls Sqoop_pass.password /user/cloudera  >>check file here 
+
+--Create sqoop job 
+sqoop]$ sqoop job --create sqljob_pwd2 -- import --connect jdbc:mysql://localhost/sqoop_job --username root --password-file /user/cloudera/Sqoop_pass.password --table cust -m 1 --target-dir /user/cloudera/savedjob_pw --incremental append --check-column id --last-value 0
+
+--check sqoop job 
+Sqoop job --list
+--Run sqoop job
+Sqoop job --exec sqljob2
+
+	21- --incremental last modified  --last-value (Delta data) 
+Note - Check column has to be a date column or timestemp column you can't give inter,string or varchar columns 
+
+sqoop import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products -m 1 --check-column sales_date --merge-key product_id --incremental lastmodified --last-value 2024-1-1 --target-dir /user/cloudera/sqoop_incer_modify 
+
+--create sqoop job for above
+
+sqoop job --create sqlmodify -- import --connect jdbc:mysql://localhost/sqoop_job --username root --password cloudera --table products -m 1 --check-column sales_date --merge-key product_id --incremental lastmodified --last-value 2024-1-1 --target-dir /user/cloudera/sqoop_incer_modify 
+
+--execute sqoop job 
+Sqoop job --exec sqlmodify
+
+--Sqoop export 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
